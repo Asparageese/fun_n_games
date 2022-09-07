@@ -5,7 +5,7 @@ from tensorflow.keras.layers import Input,Flatten,Dense,Conv2D,BatchNormalizatio
 x = np.load('x_data.npy')
 y = np.load('labels.npy')
 
-
+@tf.function
 def pointwise_ff(dff,d_mod):
 	return tf.keras.Sequential([
 		Dense(dff,activation='relu'),
@@ -26,21 +26,17 @@ class VAE(tf.keras.layers.Layer):
 		self.encoder = tf.keras.Sequential([
 			Conv2D(64,(2, 2),activation='relu'),
 			Dense(128,activation='relu'),
-			Dropout(self.rate),
-			BatchNormalization(),
-			MaxPooling2D((6,6)),
+			MaxPooling2D(),
 			Conv2D(32,(2,2),activation='relu'),
 			Dense(64,activation='relu'),
-			Dropout(self.rate),
-			BatchNormalization(),
-			MaxPooling2D((5,5)),
+			MaxPooling2D(),
 			Conv2D(64,(2,2),activation='relu'),
 			Dense(128,activation='relu'),
 			Dropout(self.rate),
-			MaxPooling2D((6,6)),
+			MaxPooling2D(),
 			LayerNormalization(),
 			pointwise_ff(dff=self.dff,d_mod=self.d_mod)
-			],name='encoder_mechanisim')
+			],name='VAE')
 
 	def call(self,inputs):
 		return self.encoder(inputs)
@@ -72,5 +68,4 @@ model.summary()
 
 with tf.device('/GPU:0'):
 	model.compile(optimizer="nadam", loss="SparseCategoricalCrossentropy", metrics=["accuracy"])
-	model.fit(x[:400],y[:400],epochs=3,batch_size=2,use_multiprocessing=True,shuffle=True)
-	model.evaluate(x[400:],y[400:])
+	model.fit(x,y,epochs=5,batch_size=3,use_multiprocessing=True,shuffle=True,validation_split=0.1)
