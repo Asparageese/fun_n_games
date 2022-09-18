@@ -1,32 +1,31 @@
 import tensorflow as tf 
 import numpy as np
 
-sample = 1000
+x,y = np.load('BS_x.npy',allow_pickle=True), np.load('BS_y.npy',allow_pickle=True)
 
-y = []
-x = []
-tile = np.arange(0,10,1)
-for i in range(sample):
-	x.append(tile)
-	y.append(np.random.rand(10))
+d_dim = np.shape(x[0])
+print("x shape",d_dim)
 
-def loss(target_y, predicted_y):
-  return tf.reduce_mean(tf.square(target_y - predicted_y))
+def loss(y,y_pred):
+	return tf.reduce_mean(tf.square(y_pred - y))
 
-class linear(tf.Module):
-	def __init__(self, **kwargs):
-		super().__init__(**kwargs)
-		self.w = tf.Variable(tf.random.uniform([10]),name='w')
-		self.b = tf.Variable(tf.random.uniform([10]),name='b')
+class twostage(tf.Module):
+	def __init__(self):
+		self.k1 = tf.Variable(tf.random.uniform(d_dim))
+		self.k2 = tf.Variable(tf.random.uniform(d_dim))
 
 	def __call__(self,x):
-		return self.w * x + self.b
+		return tf.nn.relu(self.k1 * x + self.k2)
 
-test = linear()
+model = twostage()
 
-for i in range(sample):
-	s = y[i]
+
+samples = 10
+losses = []
+for i in range(samples):
 	with tf.GradientTape() as tape:
-		y_loss = loss(y,test(x[i]))
-
-	grads = tape.gradient(y_loss,test.variables)
+		loss_value = loss(y[i],model(x))
+	grads = tape.gradient(loss_value,model.variables)
+	for g,v in zip(grads,model.variables):
+		v.assign_sub(g)
+	print(loss_value.numpy())
